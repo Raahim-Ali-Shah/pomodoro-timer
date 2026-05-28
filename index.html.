@@ -3,249 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minimal Pomodoro Timer</title>
+    <title>Pomodoro Timer</title>
     <style>
-        :root {
-            --bg-color: #2e3440;
-            --card-bg: #3b4252;
-            --text-color: #eceff4;
-            --accent-color: #bf616a; /* Focus Red */
-        }
-        body.break-mode {
-            --accent-color: #a3be8c; /* Break Green */
-        }
-        body.paused-mode {
-            --accent-color: #ebcb8b; /* Paused Yellow */
-        }
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: system-ui, sans-serif;
+            color: #2d3748;
+            font-family: sans-serif;
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             min-height: 100vh;
             margin: 0;
-            padding: 20px;
-            transition: background 0.5s ease;
+            transition: background-color 0.5s ease;
         }
-        .timer-card {
-            background: var(--card-bg);
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+
+        .focus-bg { background-color: #fff5f5; }
+        .break-bg { background-color: #f0fff4; }
+
+        .timer-box {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             text-align: center;
             width: 100%;
             max-width: 400px;
-            border-top: 8px solid var(--accent-color);
         }
-        .timer-display {
+
+        #countdown-display {
             font-size: 5rem;
             font-weight: bold;
             margin: 20px 0;
-            font-variant-numeric: tabular-nums;
         }
+
         button {
-            background: var(--accent-color);
-            color: #2e3440;
-            border: none;
             padding: 12px 24px;
             font-size: 1rem;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
             margin: 5px;
-            transition: transform 0.1s;
-        }
-        button:active { transform: scale(0.95); }
-        .config-inputs {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            gap: 10px;
-        }
-        .config-inputs label {
-            display: flex;
-            flex-direction: column;
-            font-size: 0.85rem;
-            text-align: left;
-        }
-        input {
-            background: #4c566a;
-            border: 1px solid #4c566a;
-            color: white;
-            padding: 8px;
-            border-radius: 4px;
-            margin-top: 4px;
-            width: 70px;
-        }
-        .history-section {
-            margin-top: 30px;
-            width: 100%;
-            max-width: 400px;
-        }
-        .history-list {
-            list-style: none;
-            padding: 0;
-        }
-        .history-list li {
-            background: rgba(255,255,255,0.05);
-            padding: 10px;
+            cursor: pointer;
+            border: none;
             border-radius: 6px;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
+            color: white;
+            font-weight: bold;
+            min-width: 110px;
         }
+
+        #main-action-btn { background-color: #e53e3e; }
+        #reset-btn { background-color: #a0aec0; }
+
+        /* FIXED LAYOUT SECTION */
+        .settings-box { 
+            margin-top: 30px; 
+            padding-top: 20px; 
+            border-top: 1px solid #e2e8f0; 
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+        }
+
+        .settings-box label {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.85rem;
+        }
+
+        .settings-box input {
+            width: 45px;
+            padding: 4px;
+            text-align: center;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+        }
+
+        .history-box { margin-top: 20px; text-align: left; }
     </style>
 </head>
-<body>
+<body class="focus-bg">
 
-    <div class="timer-card">
-        <h2 id="status-title">Focus Time</h2>
-        <div class="config-inputs">
-            <label>Focus (min)<input type="number" id="focusInput" value="25" min="1"></label>
-            <label>Break (min)<input type="number" id="breakInput" value="5" min="1"></label>
+    <div class="timer-box">
+        <h2 id="status-text">FOCUS TIME</h2>
+        <div id="countdown-display">25:00</div>
+        
+        <div class="button-group">
+            <button id="main-action-btn">Start</button>
+            <button id="reset-btn">Reset</button>
         </div>
-        <div class="timer-display" id="timeDisplay">25:00</div>
-        <div class="controls">
-            <button id="startPauseBtn">Start</button>
-            <button id="resetBtn">Reset</button>
+
+        <div class="settings-box">
+            <label>Focus (min): <input type="number" id="focus-input" value="25"></label>
+            <label>Break (min): <input type="number" id="break-input" value="5"></label>
+        </div>
+
+        <div class="history-box">
+            <h3>Today's History</h3>
+            <ul id="history-list"></ul>
         </div>
     </div>
-
-    <div class="history-section">
-        <h3>Today's Focus History</h3>
-        <ul id="historyList" class="history-list"></ul>
-    </div>
-
-    <!-- Audio element for cycle completion -->
-    <audio id="alertSound" src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" preload="auto"></audio>
 
     <script>
-        let timer = null;
-        let isPaused = true;
-        let currentMode = 'focus'; // 'focus' or 'break'
-        let timeLeft = 25 * 60;
+        const display = document.getElementById('countdown-display');
+        const statusText = document.getElementById('status-text');
+        const focusInput = document.getElementById('focus-input');
+        const breakInput = document.getElementById('break-input');
+        const historyList = document.getElementById('history-list');
+        const actionBtn = document.getElementById('main-action-btn');
 
-        const timeDisplay = document.getElementById('timeDisplay');
-        const startPauseBtn = document.getElementById('startPauseBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        const statusTitle = document.getElementById('status-title');
-        const focusInput = document.getElementById('focusInput');
-        const breakInput = document.getElementById('breakInput');
-        const historyList = document.getElementById('historyList');
-        const alertSound = document.getElementById('alertSound');
+        let timerInterval = null; 
+        let isFocusMode = true; 
+        let totalSecondsLeft = 25 * 60; 
 
-        function updateDisplay() {
-            const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-            const seconds = (timeLeft % 60).toString().padStart(2, '0');
-            timeDisplay.textContent = `${minutes}:${seconds}`;
+        function updateScreenDisplay() {
+            let minutes = Math.floor(totalSecondsLeft / 60);
+            let seconds = totalSecondsLeft % 60;
+            display.textContent = (minutes < 10 ? "0" : "") + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
         }
 
-        function updateUIState() {
-            document.body.className = '';
-            if (isPaused && timer !== null) {
-                document.body.classList.add('paused-mode');
-                statusTitle.textContent = 'Paused';
-            } else if (currentMode === 'focus') {
-                statusTitle.textContent = 'Focus Time';
+        function updateColors() {
+            if (isFocusMode) {
+                document.body.className = "focus-bg";
+                statusText.textContent = "FOCUS TIME";
+                statusText.style.color = "#e53e3e";
+                if (timerInterval === null) actionBtn.style.backgroundColor = "#e53e3e";
             } else {
-                document.body.classList.add('break-mode');
-                statusTitle.textContent = 'Break Time';
+                document.body.className = "break-bg";
+                statusText.textContent = "BREAK TIME!";
+                statusText.style.color = "#38a169";
+                if (timerInterval === null) actionBtn.style.backgroundColor = "#38a169";
             }
         }
 
-        function startTimer() {
-            if (timer !== null) return;
-            isPaused = false;
-            updateUIState();
-            timer = setInterval(() => {
-                if (timeLeft > 0) {
-                    timeLeft--;
-                    updateDisplay();
-                } else {
-                    handleCycleComplete();
-                }
-            }, 1000);
-            startPauseBtn.textContent = 'Pause';
+        function toggleTimer() {
+            if (timerInterval === null) {
+                actionBtn.textContent = "Pause";
+                actionBtn.style.backgroundColor = "#4a5568";
+                timerInterval = setInterval(() => {
+                    if (totalSecondsLeft > 0) {
+                        totalSecondsLeft--;
+                        updateScreenDisplay();
+                    } else {
+                        handleCycleFinished();
+                    }
+                }, 1000);
+            } else {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                actionBtn.textContent = "Resume";
+                updateColors(); 
+            }
         }
 
-        function pauseTimer() {
-            clearInterval(timer);
-            timer = null;
-            isPaused = true;
-            updateUIState();
-            startPauseBtn.textContent = 'Resume';
+        function resetTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            isFocusMode = true;
+            totalSecondsLeft = focusInput.value * 60;
+            actionBtn.textContent = "Start";
+            updateColors();
+            updateScreenDisplay();
         }
 
-        function handleCycleComplete() {
-            clearInterval(timer);
-            timer = null;
-            alertSound.play().catch(e => console.log("Audio play blocked by browser navigation policies until user interaction."));
+        function handleCycleFinished() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+            audio.play().catch(() => {});
+
+            if (isFocusMode) {
+                saveSessionToHistory();
+                isFocusMode = false;
+                totalSecondsLeft = breakInput.value * 60;
+            } else {
+                isFocusMode = true;
+                totalSecondsLeft = focusInput.value * 60;
+            }
             
-            if (currentMode === 'focus') {
-                logHistory();
-                currentMode = 'break';
-                timeLeft = parseInt(breakInput.value) * 60;
-            } else {
-                currentMode = 'focus';
-                timeLeft = parseInt(focusInput.value) * 60;
-            }
-            startTimer();
+            updateColors();
+            updateScreenDisplay();
+            toggleTimer();
         }
 
-        function logHistory() {
+        function saveSessionToHistory() {
             const now = new Date();
             const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const dateStr = now.toDateString();
-            const sessionText = `✓ ${focusInput.value}:00 focus — ${timeStr}`;
-            
-            let historyData = JSON.parse(localStorage.getItem('pomoHistory')) || { date: dateStr, items: [] };
-            
-            // Clear if old calendar day
-            if (historyData.date !== dateStr) {
-                historyData = { date: dateStr, items: [] };
-            }
-            
-            historyData.items.unshift(sessionText);
-            localStorage.setItem('pomoHistory', JSON.stringify(historyData));
-            renderHistory();
+            const li = document.createElement('li');
+            li.textContent = "✓ " + focusInput.value + "m Focus - " + timeStr;
+            historyList.prepend(li);
         }
 
-        function renderHistory() {
-            const historyData = JSON.parse(localStorage.getItem('pomoHistory'));
-            const todayStr = new Date().toDateString();
-            historyList.innerHTML = '';
-            
-            if (historyData && historyData.date === todayStr) {
-                historyData.items.forEach(item => {
-                    const li = document.createElement('li');
-                    li.textContent = item;
-                    historyList.appendChild(li);
-                });
+        actionBtn.onclick = toggleTimer;
+        document.getElementById('reset-btn').onclick = resetTimer;
+
+        // Makes sure the display updates if you change the focus number while reset
+        focusInput.onchange = () => {
+            if (timerInterval === null && isFocusMode) {
+                totalSecondsLeft = focusInput.value * 60;
+                updateScreenDisplay();
             }
-        }
-
-        startPauseBtn.addEventListener('click', () => {
-            if (isPaused) startTimer();
-            else pauseTimer();
-        });
-
-        resetBtn.addEventListener('click', () => {
-            clearInterval(timer);
-            timer = null;
-            isPaused = true;
-            currentMode = 'focus';
-            timeLeft = parseInt(focusInput.value) * 60;
-            startPauseBtn.textContent = 'Start';
-            updateDisplay();
-            updateUIState();
-        });
-
-        // Initialize
-        timeLeft = parseInt(focusInput.value) * 60;
-        updateDisplay();
-        renderHistory();
+        };
+        
+        updateScreenDisplay();
     </script>
 </body>
 </html>
