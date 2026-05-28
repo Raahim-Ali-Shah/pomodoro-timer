@@ -33,6 +33,12 @@
             font-size: 5rem;
             font-weight: bold;
             margin: 20px 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* NEW: Visual style for the paused state */
+        .paused {
+            opacity: 0.3;
         }
 
         button {
@@ -50,7 +56,6 @@
         #main-action-btn { background-color: #e53e3e; }
         #reset-btn { background-color: #a0aec0; }
 
-        /* FIXED LAYOUT SECTION */
         .settings-box { 
             margin-top: 30px; 
             padding-top: 20px; 
@@ -131,6 +136,14 @@
                 statusText.style.color = "#38a169";
                 if (timerInterval === null) actionBtn.style.backgroundColor = "#38a169";
             }
+
+            // ADDED: Logic to toggle the 'paused' visual state
+            if (timerInterval === null && actionBtn.textContent !== "Start") {
+                display.classList.add('paused');
+                statusText.textContent = "PAUSED";
+            } else {
+                display.classList.remove('paused');
+            }
         }
 
         function toggleTimer() {
@@ -149,8 +162,8 @@
                 clearInterval(timerInterval);
                 timerInterval = null;
                 actionBtn.textContent = "Resume";
-                updateColors(); 
             }
+            updateColors(); // Moved outside the if/else to ensure visuals update on every click
         }
 
         function resetTimer() {
@@ -194,7 +207,6 @@
         actionBtn.onclick = toggleTimer;
         document.getElementById('reset-btn').onclick = resetTimer;
 
-        // Makes sure the display updates if you change the focus number while reset
         focusInput.onchange = () => {
             if (timerInterval === null && isFocusMode) {
                 totalSecondsLeft = focusInput.value * 60;
