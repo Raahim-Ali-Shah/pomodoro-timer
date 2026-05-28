@@ -7,7 +7,7 @@
     <style>
         body {
             color: #2d3748;
-            font-family: sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -23,23 +23,23 @@
             background: white;
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             text-align: center;
-            width: 100%;
+            width: 90%;
             max-width: 400px;
         }
+
+        #status-text { font-weight: 600; letter-spacing: 1px; }
 
         #countdown-display {
             font-size: 5rem;
             font-weight: bold;
-            margin: 20px 0;
+            margin: 10px 0;
             transition: opacity 0.3s ease;
         }
 
-        /* NEW: Visual style for the paused state */
-        .paused {
-            opacity: 0.3;
-        }
+        /* Paused state visual */
+        .paused { opacity: 0.2; }
 
         button {
             padding: 12px 24px;
@@ -47,11 +47,14 @@
             margin: 5px;
             cursor: pointer;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             color: white;
             font-weight: bold;
             min-width: 110px;
+            transition: transform 0.1s;
         }
+
+        button:active { transform: scale(0.95); }
 
         #main-action-btn { background-color: #e53e3e; }
         #reset-btn { background-color: #a0aec0; }
@@ -62,26 +65,44 @@
             border-top: 1px solid #e2e8f0; 
             display: flex;
             justify-content: space-evenly;
-            align-items: center;
         }
 
         .settings-box label {
             display: flex;
-            flex-direction: row;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.85rem;
+            flex-direction: column;
+            font-size: 0.75rem;
+            color: #718096;
         }
 
         .settings-box input {
-            width: 45px;
-            padding: 4px;
+            width: 50px;
+            padding: 6px;
+            margin-top: 4px;
             text-align: center;
             border: 1px solid #cbd5e0;
             border-radius: 4px;
         }
 
-        .history-box { margin-top: 20px; text-align: left; }
+        .history-box { 
+            margin-top: 25px; 
+            text-align: left; 
+            max-height: 150px; 
+            overflow-y: auto;
+        }
+
+        .history-box h3 { font-size: 0.9rem; color: #4a5568; margin-bottom: 8px; }
+
+        #history-list { 
+            padding: 0; 
+            list-style: none; 
+            font-size: 0.85rem; 
+        }
+
+        #history-list li {
+            padding: 6px 0;
+            border-bottom: 1px solid #edf2f7;
+            color: #2d3748;
+        }
     </style>
 </head>
 <body class="focus-bg">
@@ -96,8 +117,8 @@
         </div>
 
         <div class="settings-box">
-            <label>Focus (min): <input type="number" id="focus-input" value="25"></label>
-            <label>Break (min): <input type="number" id="break-input" value="5"></label>
+            <label>Focus (min) <input type="number" id="focus-input" value="25"></label>
+            <label>Break (min) <input type="number" id="break-input" value="5"></label>
         </div>
 
         <div class="history-box">
@@ -118,6 +139,41 @@
         let isFocusMode = true; 
         let totalSecondsLeft = 25 * 60; 
 
+        // --- PERSISTENCE LOGIC ---
+
+        function getTodayKey() {
+            // Returns a string like "pomodoro-2023-10-27"
+            return "pomo-" + new Date().toISOString().split('T')[0];
+        }
+
+        function loadHistory() {
+            const todayKey = getTodayKey();
+            const saved = localStorage.getItem(todayKey);
+            
+            // Clear history from other days
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('pomo-') && key !== todayKey) {
+                    localStorage.removeItem(key);
+                }
+            }
+
+            if (saved) {
+                const logs = JSON.parse(saved);
+                logs.forEach(log => renderHistoryItem(log));
+            }
+        }
+
+        function saveLog(entry) {
+            const todayKey = getTodayKey();
+            const saved = localStorage.getItem(todayKey);
+            const logs = saved ? JSON.parse(saved) : [];
+            logs.unshift(entry); // Add to start
+            localStorage.setItem(todayKey, JSON.stringify(logs));
+        }
+
+        // --- TIMER LOGIC ---
+
         function updateScreenDisplay() {
             let minutes = Math.floor(totalSecondsLeft / 60);
             let seconds = totalSecondsLeft % 60;
@@ -137,7 +193,6 @@
                 if (timerInterval === null) actionBtn.style.backgroundColor = "#38a169";
             }
 
-            // ADDED: Logic to toggle the 'paused' visual state
             if (timerInterval === null && actionBtn.textContent !== "Start") {
                 display.classList.add('paused');
                 statusText.textContent = "PAUSED";
@@ -163,7 +218,7 @@
                 timerInterval = null;
                 actionBtn.textContent = "Resume";
             }
-            updateColors(); // Moved outside the if/else to ensure visuals update on every click
+            updateColors();
         }
 
         function resetTimer() {
@@ -179,11 +234,16 @@
         function handleCycleFinished() {
             clearInterval(timerInterval);
             timerInterval = null;
-            const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
-            audio.play().catch(() => {});
+            new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg").play().catch(() => {});
 
             if (isFocusMode) {
-                saveSessionToHistory();
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const logEntry = "✓ " + focusInput.value + ":00 focus — " + timeStr;
+                
+                renderHistoryItem(logEntry);
+                saveLog(logEntry);
+
                 isFocusMode = false;
                 totalSecondsLeft = breakInput.value * 60;
             } else {
@@ -196,11 +256,9 @@
             toggleTimer();
         }
 
-        function saveSessionToHistory() {
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        function renderHistoryItem(text) {
             const li = document.createElement('li');
-            li.textContent = "✓ " + focusInput.value + "m Focus - " + timeStr;
+            li.textContent = text;
             historyList.prepend(li);
         }
 
@@ -214,6 +272,8 @@
             }
         };
         
+        // Initial setup
+        loadHistory();
         updateScreenDisplay();
     </script>
 </body>
