@@ -1,23 +1,31 @@
-# Assessment Responses
+1. How to run
+This is a vanilla web application. No installation, compilers, or servers are required.
 
-### 1. How to Run
-Open the `index.html` file at the root of the project directly within any desktop or mobile web browser. No local setup commands, installations, or node configurations are needed.
+Steps: Download the index.html file and open it directly in any modern web browser (Chrome, Firefox, or Safari).
 
-### 2. Stack & Design Choices
-I chose a Vanilla HTML/CSS/JavaScript setup to build a lightweight, single-page UI. Avoiding frameworks kept the load speed instant and clean.
-* **Visual Choice 1:** Dynamic color shifts map directly to current state changes—a soft red background accents focus blocks, transitioning to calm green during active break sessions, and an amber layer for global user pauses.
-* **Visual Choice 2:** The primary numerical display properties leverage `font-variant-numeric: tabular-nums` matching a substantial `5rem` sizing layout. This keeps changing characters perfectly aligned, preventing jarring screen shifting.
 
-### 3. Responsive & Accessibility
-* **Responsiveness:** Managed via responsive Flexbox constraints combined alongside explicit container styling limits (`max-width: 400px`), optimizing rendering flow on layouts scaling from 360px phones up to wide monitors.
-* **Accessibility Highlight:** Strict structural element layouts with high color contrast scores matching clean background pairs ensure reliable text parsing properties.
-* **Skipped Highlight:** Advanced keybinding macros were purposefully omitted to safeguard native browser structural screen reader control operations.
+2. Stack & design choices
+I used Vanilla HTML, CSS, and JavaScript.
 
-### 4. AI Usage Disclosure
-* **Tool Used:** Gemini AI
-* **What I asked:** "I am a complete beginner who only knows basic HTML/CSS/JS. I have a critical university exam day after tomorrow and less than two hours to spare. Please provide a functional, single-file Pomodoro timer template so I can submit this placement assessment on time."
-* **What it gave me:** A complete single-file structure processing internal interval countdown handlers and dynamic localStorage tracking.
-* **What I modified / My approach:** Due to my upcoming exam constraints, I did not modify or rewrite the functional logic. I am submitting this code with complete transparency to show how I approached a major time clash, using AI as a delivery aid.
+The "Why": As a beginner, I chose the simplest stack possible to ensure I could focus on the user experience and meeting the specific project requirements without the overhead of a complex framework.
 
-### 5. Honest Gap
-The primary gap is my deep structural understanding of the core JavaScript mechanisms handling the timer's loop logic. While the application executes perfectly, I cannot personally explain every line of the browser interval arrays. I am explicitly aiming for placement in the **Beginner Track** of the fellowship so I can dedicate the upcoming weeks to mastering these exact concepts from scratch.
+Interaction Decision 1 (Paused State): I added a .paused class that dims the timer to 20% opacity and scales it down. I did this because a static timer can look like a bug; the visual change makes it clear the clock is "resting."
+
+Interaction Decision 2 (Daily History): I placed the history list directly under the timer. This creates a "progress bar" feel where the user can see their day's achievements at a glance, which is a key psychological motivator in the Pomodoro technique.
+
+3. Responsive & accessibility
+Device Handling: The app uses a flexible 90% width on mobile (360px) and caps at 420px on desktop. I used margin: 0 auto and flexbox to ensure the timer remains perfectly centered on any screen size.
+
+Accessibility Handled: I used native <button> tags. This is a deliberate choice because buttons are accessible by default—users can navigate between "Start" and "Reset" using only the Tab key and trigger them with Enter.
+
+Accessibility Skipped: I knowingly skipped "Screen Reader Aria-Labels" for the timer countdown. Because the numbers change every second, a screen reader might try to announce every single second, which can be overwhelming for a user.
+
+4. AI usage
+I used Gemini to act as my "Technical Lead" for this project.
+
+What I asked: I provided the project requirements and asked for a functional Pomodoro timer that handles localStorage and "daily resets."
+
+The Change: The AI initially gave me a very plain "Done" alert. I directed the AI to change this because the assessment asked for a "satisfying session-done moment." I asked for a CSS animation called pulse-success and a brief delay before the next cycle starts. This ensures the user actually notices and feels the reward of finishing a session.
+
+5. Honest gap
+My biggest gap is a deep, line-by-line understanding of Asynchronous JavaScript (how setInterval works behind the scenes). While the AI helped me build a working heart for the timer, I would need more study time to manually write the logic that keeps the timer perfectly accurate if the browser tab is minimized or put to sleep. With another day, I would also learn how to "Base64 encode" the audio file so the notification works perfectly even if the user has no internet connection.
